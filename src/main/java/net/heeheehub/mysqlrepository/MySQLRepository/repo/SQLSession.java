@@ -50,7 +50,7 @@ public class SQLSession {
         codeBuilder.setLength(codeBuilder.length()-1);
         codeBuilder.append(")");
 
-        try(PreparedStatement ps = database.getConn().prepareStatement(codeBuilder.toString())){
+        try(PreparedStatement ps = database.getConn().prepareStatement(codeBuilder.toString(), Statement.RETURN_GENERATED_KEYS)){
             for (int i = 0; i < colNameList.size(); i++) {
                 Field field = params.get(colNameList.get(i));
                 field.setAccessible(true);
