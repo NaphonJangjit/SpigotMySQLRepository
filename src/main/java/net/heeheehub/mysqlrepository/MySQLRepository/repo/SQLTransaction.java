@@ -39,6 +39,10 @@ public class SQLTransaction {
 		}
 	}
 	
+	public boolean isActive() {
+		return active;
+	}
+	
 	
 
 }

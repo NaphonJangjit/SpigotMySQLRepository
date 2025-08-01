@@ -1,7 +1,6 @@
 main:
-	name: mytestdatabase
-	user: admin
-	password: 1234
-	host: localhost
-	port: 3306
-	
+    name: mytestdatabase
+    user: admin
+    password: 1234
+    host: localhost
+    port: 3306

@@ -13,7 +13,6 @@ public class SQLSession {
 
     private Database database;
     private Map<String, Object> persistenceContext;
-    private boolean transactionAlive = false;
     private SQLTransaction tx;
     public SQLSession(Database database) throws SQLException {
         this.database = database;
@@ -28,12 +27,15 @@ public class SQLSession {
     }
 
     public void persists(Object object) throws SQLException, IllegalClassFormatException, IllegalAccessException {
-        if(!transactionAlive) throw new IllegalStateException("No active transaction");
-        long id = getId(object);
-        String key = getKey(object, id);
-        if(persistenceContext.containsKey(key)){
-            update(object);
-            return;
+        if(!tx.isActive()) throw new IllegalStateException("No active transaction");
+        Long id = getId(object);
+        String key;
+        if(id != null) {
+	        key = getKey(object, id);
+	        if(persistenceContext.containsKey(key)){
+	            update(object);
+	            return;
+	        }
         }
         String tableName = getTableName(object);
 
