@@ -178,7 +178,7 @@ public class SQLSession {
                         field.set(instance, value);
                     }
                 }
-
+                persistenceContext.put(getKey(instance, getId(instance)), instance);
                 return instance;
 
             } catch (Exception e) {
