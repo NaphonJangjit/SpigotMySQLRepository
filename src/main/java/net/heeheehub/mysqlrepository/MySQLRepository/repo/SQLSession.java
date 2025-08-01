@@ -55,7 +55,9 @@ public class SQLSession {
                 Field field = params.get(colNameList.get(i));
                 field.setAccessible(true);
                 Object value = field.get(object);
-                ps.setObject(i + 1, value);
+                if(value instanceof UUID uuid) {
+                	ps.setObject(i + 1, uuid.toString());
+                }else ps.setObject(i + 1, value);
             }
 
             ps.executeUpdate();
@@ -393,6 +395,7 @@ public class SQLSession {
         if (type == double.class || type == Double.class) return "DOUBLE";
         if (type == char.class || type == Character.class) return "CHAR(1)";
         if (type == String.class) return "VARCHAR(255)";
+        if (type == UUID.class) return "VARCHAR(36)";
         if (type == java.util.Date.class || type == java.sql.Timestamp.class) return "DATETIME";
         if (type == java.sql.Date.class) return "DATE";
         if (type == java.sql.Time.class) return "TIME";
@@ -485,7 +488,7 @@ public class SQLSession {
                 } else if (value instanceof byte[]) {
                     ps.setBytes(i, (byte[]) value);
                 } else {
-                    ps.setObject(i, value);
+                    ps.setString(i, value.toString());
                 }
                 i++;
             }
