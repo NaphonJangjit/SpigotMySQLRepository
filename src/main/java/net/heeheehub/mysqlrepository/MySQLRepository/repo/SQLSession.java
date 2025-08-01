@@ -541,6 +541,23 @@ public class SQLSession {
         }
         return colsData;
     }
+    
+    private static Map<String, Field> getColumnData(Class<?> clazz, boolean includeId){
+        Map<String, Field> colsData = new LinkedHashMap<>();
+        boolean isAutoMapped = isAutoMapped(clazz);
+        for(Field f : clazz.getDeclaredFields()){
+            if(f.isAnnotationPresent(MySQLColumn.class)){
+                if(f.isAnnotationPresent(SQLId.class) && !includeId) continue;
+                MySQLColumn msC = f.getAnnotation(MySQLColumn.class);
+                colsData.put(msC.value(), f);
+            }else if(f.isAnnotationPresent(SQLId.class) && includeId){
+                colsData.put(f.getName(), f);
+            }else if(isAutoMapped){
+                colsData.put(f.getName(), f);
+            }
+        }
+        return colsData;
+    }
 
     private static String getIdColumn(Object o)throws IllegalAccessException, IllegalClassFormatException {
         Class<?> clazz = o.getClass();
