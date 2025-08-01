@@ -113,7 +113,7 @@ public class SQLSession {
 
             String sql = "SELECT * FROM `" + tableName + "` WHERE `" + idColumn + "` = ? LIMIT 1";
 
-            try (PreparedStatement ps = database.getConn().prepareStatement(sql)) {
+            try (PreparedStatement ps = database.newConnection().prepareStatement(sql)) {
                 ps.setObject(1, id);
                 ResultSet rs = ps.executeQuery();
 
@@ -157,7 +157,7 @@ public class SQLSession {
 
             String sql = "SELECT * FROM `" + tableName + "` WHERE `" + uuidCol + "` = ? LIMIT 1";
 
-            try (PreparedStatement ps = database.getConn().prepareStatement(sql)) {
+            try (PreparedStatement ps = database.newConnection().prepareStatement(sql)) {
                 ps.setObject(1, uuid.toString());
                 ResultSet rs = ps.executeQuery();
 
