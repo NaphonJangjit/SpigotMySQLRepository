@@ -430,7 +430,7 @@ public class SQLSession {
         String tableName = getTableName(o);
         Map<String, Field> params = getColumnData(o, false);
         String idCol = getIdColumn(o);
-        long id = getId(o);
+        Long id = getId(o);
 
         StringBuilder codeBuilder = new StringBuilder("UPDATE ");
         codeBuilder.append(tableName).append(" SET ");
@@ -568,8 +568,12 @@ public class SQLSession {
                 throw new IllegalClassFormatException("Multiple ID field");
             }
             if(field.isAnnotationPresent(SQLId.class)){
-                field.setAccessible(true);
-                id = (String) field.get(o);
+                if(field.isAnnotationPresent(MySQLColumn.class)) {
+                	MySQLColumn msC = field.getAnnotation(MySQLColumn.class);
+                	id = msC.value();
+                }else {
+                	id = field.getName();
+                }
             }
         }
         return id;
