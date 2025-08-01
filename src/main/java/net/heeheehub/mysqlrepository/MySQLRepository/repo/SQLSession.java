@@ -25,8 +25,13 @@ public class SQLSession {
     	tx.begin();
     	return tx;
     }
+    
+    public void endTransaction() throws SQLException {
+    	persistenceContext.clear();
+    	tx.end();
+    }
 
-    public void persists(Object object) throws SQLException, IllegalClassFormatException, IllegalAccessException {
+    public Long persists(Object object) throws SQLException, IllegalClassFormatException, IllegalAccessException {
         if(!tx.isActive()) throw new IllegalStateException("No active transaction");
         Long id = getId(object);
         String key;
@@ -34,7 +39,7 @@ public class SQLSession {
 	        key = getKey(object, id);
 	        if(persistenceContext.containsKey(key)){
 	            update(object);
-	            return;
+	            return id;
 	        }
         }
         String tableName = getTableName(object);
@@ -80,11 +85,13 @@ public class SQLSession {
         }catch (SQLException ex){
             if(ex.getErrorCode() == 1146){
                 createTable(tableName, object.getClass());
-                persists(object);
+                return persists(object);
             }else {
                 throw new RuntimeException(ex);
             }
         }
+        
+        return id;
     }
 
     public <T> T get(Class<T> clazz, Long id) {
@@ -247,6 +254,22 @@ public class SQLSession {
             throw new RuntimeException("Failed to delete object", e);
         }
     }
+    
+    public Long getIdBy(Class<?> clazz, String column, Object value) throws IllegalAccessException, IllegalClassFormatException, SQLException {
+    	Long id = null;
+    	String tableName = getTableName(clazz);
+    	String idCol = getIdColumn(clazz);
+    	
+    	try(Connection conn = database.newConnection(); PreparedStatement ps = conn.prepareStatement("SELECT " + idCol + " FROM " + tableName + " WHERE `" + column + "` = ? limit = 1")){
+    		setupPreparedStatementParams(ps, 1, value);
+    		
+    		ResultSet rs = ps.executeQuery();
+    		if(rs.next()) {
+    			id = rs.getLong(idCol);
+    		}
+    	}
+    	return id;
+    }
 
 
     public void delete(String tableName, String uuidCol, UUID uuid) {
@@ -330,7 +353,8 @@ public class SQLSession {
         List<T> results = new ArrayList<>();
 
 
-        try (PreparedStatement ps = database.getConn().prepareStatement("SELECT * FROM " + query);
+        String tableName = getTableName(clazz);
+        try (PreparedStatement ps = database.newConnection().prepareStatement("SELECT * FROM " + tableName + " obj " + query);
              ResultSet rs = ps.executeQuery()) {
 
             Map<String, Field> columnData = getColumnData(clazz, true);
@@ -351,7 +375,10 @@ public class SQLSession {
                         field.set(instance, value);
                     }
                 }
-
+                
+                Long id = getId(instance);
+                String key = getKey(instance, id);
+                persistenceContext.put(key, instance); 
                 results.add(instance);
             }
 
@@ -366,7 +393,7 @@ public class SQLSession {
 
         List<Object[]> results = new ArrayList<>();
 
-        try (PreparedStatement ps = database.getConn().prepareStatement(query);
+        try (PreparedStatement ps = database.newConnection().prepareStatement(query);
              ResultSet rs = ps.executeQuery()) {
 
             int columnCount = rs.getMetaData().getColumnCount();
@@ -450,50 +477,53 @@ public class SQLSession {
                 Field field = params.get(key);
                 field.setAccessible(true);
                 Object value = field.get(o);
-
-                if (value == null) {
-                    ps.setObject(i, null);
-                } else if (value instanceof Integer) {
-                    ps.setInt(i, (Integer) value);
-                } else if (value instanceof String) {
-                    ps.setString(i, (String) value);
-                } else if (value instanceof Short) {
-                    ps.setShort(i, (Short) value);
-                } else if (value instanceof Float) {
-                    ps.setFloat(i, (Float) value);
-                } else if (value instanceof Double) {
-                    ps.setDouble(i, (Double) value);
-                } else if (value instanceof Long) {
-                    ps.setLong(i, (Long) value);
-                } else if (value instanceof Boolean) {
-                    ps.setBoolean(i, (Boolean) value);
-                } else if (value instanceof Byte) {
-                    ps.setByte(i, (Byte) value);
-                } else if (value instanceof Character) {
-                    ps.setString(i, value.toString());
-                } else if (value instanceof java.math.BigDecimal) {
-                    ps.setBigDecimal(i, (java.math.BigDecimal) value);
-                } else if (value instanceof java.sql.Date) {
-                    ps.setDate(i, (java.sql.Date) value);
-                } else if (value instanceof java.sql.Time) {
-                    ps.setTime(i, (java.sql.Time) value);
-                } else if (value instanceof java.sql.Timestamp) {
-                    ps.setTimestamp(i, (java.sql.Timestamp) value);
-                } else if (value instanceof java.util.Date) {
-                    ps.setTimestamp(i, new java.sql.Timestamp(((java.util.Date) value).getTime()));
-                } else if (value instanceof java.time.LocalDate) {
-                    ps.setDate(i, java.sql.Date.valueOf((java.time.LocalDate) value));
-                } else if (value instanceof java.time.LocalDateTime) {
-                    ps.setTimestamp(i, java.sql.Timestamp.valueOf((java.time.LocalDateTime) value));
-                } else if (value instanceof byte[]) {
-                    ps.setBytes(i, (byte[]) value);
-                } else {
-                    ps.setString(i, value.toString());
-                }
+                setupPreparedStatementParams(ps, i, value);                
                 i++;
             }
             ps.setLong(i, id);
             ps.executeUpdate();
+        }
+    }
+    
+    private static void setupPreparedStatementParams(PreparedStatement ps, int i, Object value) throws SQLException {
+    	if (value == null) {
+            ps.setObject(i, null);
+        } else if (value instanceof Integer) {
+            ps.setInt(i, (Integer) value);
+        } else if (value instanceof String) {
+            ps.setString(i, (String) value);
+        } else if (value instanceof Short) {
+            ps.setShort(i, (Short) value);
+        } else if (value instanceof Float) {
+            ps.setFloat(i, (Float) value);
+        } else if (value instanceof Double) {
+            ps.setDouble(i, (Double) value);
+        } else if (value instanceof Long) {
+            ps.setLong(i, (Long) value);
+        } else if (value instanceof Boolean) {
+            ps.setBoolean(i, (Boolean) value);
+        } else if (value instanceof Byte) {
+            ps.setByte(i, (Byte) value);
+        } else if (value instanceof Character) {
+            ps.setString(i, value.toString());
+        } else if (value instanceof java.math.BigDecimal) {
+            ps.setBigDecimal(i, (java.math.BigDecimal) value);
+        } else if (value instanceof java.sql.Date) {
+            ps.setDate(i, (java.sql.Date) value);
+        } else if (value instanceof java.sql.Time) {
+            ps.setTime(i, (java.sql.Time) value);
+        } else if (value instanceof java.sql.Timestamp) {
+            ps.setTimestamp(i, (java.sql.Timestamp) value);
+        } else if (value instanceof java.util.Date) {
+            ps.setTimestamp(i, new java.sql.Timestamp(((java.util.Date) value).getTime()));
+        } else if (value instanceof java.time.LocalDate) {
+            ps.setDate(i, java.sql.Date.valueOf((java.time.LocalDate) value));
+        } else if (value instanceof java.time.LocalDateTime) {
+            ps.setTimestamp(i, java.sql.Timestamp.valueOf((java.time.LocalDateTime) value));
+        } else if (value instanceof byte[]) {
+            ps.setBytes(i, (byte[]) value);
+        } else {
+            ps.setString(i, value.toString());
         }
     }
 
@@ -561,6 +591,25 @@ public class SQLSession {
 
     private static String getIdColumn(Object o)throws IllegalAccessException, IllegalClassFormatException {
         Class<?> clazz = o.getClass();
+        String id = null;
+        boolean b = false;
+        for(Field field : clazz.getDeclaredFields()){
+            if(b){
+                throw new IllegalClassFormatException("Multiple ID field");
+            }
+            if(field.isAnnotationPresent(SQLId.class)){
+                if(field.isAnnotationPresent(MySQLColumn.class)) {
+                	MySQLColumn msC = field.getAnnotation(MySQLColumn.class);
+                	id = msC.value();
+                }else {
+                	id = field.getName();
+                }
+            }
+        }
+        return id;
+    }
+    
+    private static String getIdColumn(Class<?> clazz) throws IllegalAccessException, IllegalClassFormatException {
         String id = null;
         boolean b = false;
         for(Field field : clazz.getDeclaredFields()){

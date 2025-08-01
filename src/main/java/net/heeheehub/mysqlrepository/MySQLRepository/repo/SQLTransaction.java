@@ -12,12 +12,17 @@ public class SQLTransaction {
 		this.database = database;
 	}
 	
-	public void begin() throws SQLException {
+	void begin() throws SQLException {
 		if(active) {
 			throw new IllegalStateException("Transaction is already active");
 		}
 		database.getConn().setAutoCommit(false);
 		active = true;
+	}
+	
+	void end() throws SQLException {
+		active = false;
+		database.getConn().setAutoCommit(true);
 	}
 	
 	public void commit() throws SQLException {
