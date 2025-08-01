@@ -20,7 +20,7 @@ public class SQLSession {
         this.tx = new SQLTransaction(database);
     }
     
-    public SQLTransaction beginTransaction() {
+    public SQLTransaction beginTransaction() throws SQLException {
     	persistenceContext.clear();
     	tx.begin();
     	return tx;
