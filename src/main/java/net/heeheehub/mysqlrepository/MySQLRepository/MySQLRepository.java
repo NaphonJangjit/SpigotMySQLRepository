@@ -13,22 +13,42 @@ public class MySQLRepository extends JavaPlugin {
 	
 	private final static Map<String, Database> databases = new HashMap<>();
 	private static String mainDb;
+	public static MySQLRepository instance;
 	@Override
 	public void onEnable() {
-		if(getConfig().contains("main")) {
-			mainDb = getConfig().getString("main.name");
+		if(!getConfig().contains("main")) {
+			getConfig().set("main.name", "mytestdatabase");
+			getConfig().set("main.host", "localhost");
+			getConfig().set("main.port", "3306");
+			getConfig().set("main.user", "admin");
+			getConfig().set("main.password", "1234");
+			saveConfig();
+		}
+		instance = this;
+		mainDb = getConfig().getString("main.name");
+		registerGlobalDatabase(
+				new Database(
+						getConfig().getString("main.host"), 
+						getConfig().getInt("main.port"), 
+						mainDb, 
+						getConfig().getString("main.user"), 
+						getConfig().getString("main.password")
+						)
+				);
+		for(String l : getConfig().getConfigurationSection("db.").getKeys(false)) {
 			registerGlobalDatabase(
 					new Database(
-							getConfig().getString("main.host"), 
-							getConfig().getInt("main.port"), 
-							mainDb, 
-							getConfig().getString("main.user"), 
-							getConfig().getString("main.password")
+							getConfig().getString("db." + l + ".host"), 
+							getConfig().getInt("db." + l + ".port"), 
+							getConfig().getString("db." + l + ".name"), 
+							getConfig().getString("db." + l + ".user"), 
+							getConfig().getString("db." + l + ".password")
 							)
 					);
-			getMainDatabase().connect();
-			Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aMySQLRepository&7] &aConnected to mysql db" + mainDb));
 		}
+		getMainDatabase().connect();
+		Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aMySQLRepository&7] &aConnected to mysql db" + mainDb));
+	
 		
 		Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aMySQLRepository&7] &aMySQLRepo enabled"));
 		
@@ -45,8 +65,15 @@ public class MySQLRepository extends JavaPlugin {
 	
 	public static void registerGlobalDatabase(Database database) {
 		databases.put(database.getDbName(), database);
-	}
+		String dbName = database.getDbName();
+		instance.getConfig().set("db." + dbName + ".name", dbName);
+		instance.getConfig().set("db." + dbName + ".host", database.getHost());
+		instance.getConfig().set("db." + dbName + ".port", database.getPort());
+		instance.getConfig().set("db." + dbName + ".user", database.getUser());
+		instance.getConfig().set("db." + dbName + ".password", database.getPassword());
+		instance.saveConfig();
 	
+	}
 	public static Database getMainDatabase() {
 		return databases.get(mainDb);
 	}
