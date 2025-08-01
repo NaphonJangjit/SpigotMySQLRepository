@@ -260,7 +260,7 @@ public class SQLSession {
     	String tableName = getTableName(clazz);
     	String idCol = getIdColumn(clazz);
     	
-    	try(Connection conn = database.newConnection(); PreparedStatement ps = conn.prepareStatement("SELECT " + idCol + " FROM " + tableName + " WHERE `" + column + "` = ? limit = 1")){
+    	try(Connection conn = database.newConnection(); PreparedStatement ps = conn.prepareStatement("SELECT " + idCol + " FROM " + tableName + " WHERE `" + column + "` = ? limit 1")){
     		setupPreparedStatementParams(ps, 1, value);
     		
     		ResultSet rs = ps.executeQuery();
