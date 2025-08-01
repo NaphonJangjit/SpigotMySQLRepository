@@ -40,6 +40,7 @@ public class Database {
     public void disconnect(){
         try {
             conn.close();
+            Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aSQLRepo&7] &cDisconnected from " + dbName + "!"));
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
