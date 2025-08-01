@@ -1,0 +1,5 @@
+name: MySQLRepository
+main: net.heeheehub.mysqlrepository.MySQLRepository.MySQLRepository
+version: 1.0-SNAPSHOT
+author: NaphonJangjit
+api-version: 1.21
