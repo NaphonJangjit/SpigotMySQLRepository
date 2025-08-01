@@ -45,6 +45,16 @@ public class Database {
             throw new RuntimeException(ex);
         }
     }
+    
+    public Connection newConnection() {
+    	Connection conn = null;
+		try {
+			conn = DriverManager.getConnection(url, user, password);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    	return conn;
+    }
 
     public Connection getConn() {
         return conn;

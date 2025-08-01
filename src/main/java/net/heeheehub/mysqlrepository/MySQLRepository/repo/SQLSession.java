@@ -317,10 +317,10 @@ public class SQLSession {
         codeBuilder.append("\n);");
 
         String sql = codeBuilder.toString();
-
-        // Execute the query using JDBC
-        try (Connection conn = this.database.getConn(); Statement stmt = conn.createStatement()) {
+        
+        try (Connection conn = this.database.newConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
+            conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
