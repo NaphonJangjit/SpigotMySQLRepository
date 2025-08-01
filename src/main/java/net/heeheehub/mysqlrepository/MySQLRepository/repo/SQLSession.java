@@ -504,6 +504,12 @@ public class SQLSession {
         MySQLField msF = clazz.getAnnotation(MySQLField.class);
         return msF.value();
     }
+    
+    private static String getTableName(Class<?> clazz){
+        if(!clazz.isAnnotationPresent(MySQLField.class)) throw new RuntimeException("No such annotation declared for class " + clazz.getName());
+        MySQLField msF = clazz.getAnnotation(MySQLField.class);
+        return msF.value();
+    }
 
     private static boolean isAutoMapped(Object o){
         Class<?> clazz = o.getClass();
