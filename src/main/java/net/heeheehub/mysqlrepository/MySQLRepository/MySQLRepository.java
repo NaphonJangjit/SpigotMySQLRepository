@@ -45,6 +45,7 @@ public class MySQLRepository extends JavaPlugin {
 							getConfig().getString("db." + l + ".password")
 							)
 					);
+			Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aMySQLRepository&7] &aRegistered " + getConfig().getString("db." + l + ".name")));
 		}
 		getMainDatabase().connect();
 		Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aMySQLRepository&7] &aConnected to mysql db" + mainDb));
