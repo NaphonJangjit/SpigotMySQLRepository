@@ -16,7 +16,8 @@ public class MySQLRepository extends JavaPlugin {
 	public static MySQLRepository instance;
 	@Override
 	public void onEnable() {
-		if(!getConfig().contains("main")) {
+		saveDefaultConfig();
+		if (!getConfig().isConfigurationSection("main") || getConfig().getConfigurationSection("main").getKeys(false).isEmpty()){
 			getConfig().set("main.name", "mytestdatabase");
 			getConfig().set("main.host", "localhost");
 			getConfig().set("main.port", "3306");
