@@ -267,6 +267,12 @@ public class SQLSession {
     		if(rs.next()) {
     			id = rs.getLong(idCol);
     		}
+    	}catch(SQLException ex) {
+    		if(ex.getErrorCode() == 1146) {
+    			return -1L;
+    		}else {
+    			throw new RuntimeException("Database error", ex);
+    		}
     	}
     	return id;
     }
