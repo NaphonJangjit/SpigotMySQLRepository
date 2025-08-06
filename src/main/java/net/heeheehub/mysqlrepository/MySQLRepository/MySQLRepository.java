@@ -35,7 +35,7 @@ public class MySQLRepository extends JavaPlugin {
 						getConfig().getString("main.user"), 
 						getConfig().getString("main.password")
 						)
-				);
+				, false);
 		for(String l : getConfig().getConfigurationSection("db.").getKeys(false)) {
 			registerGlobalDatabase(
 					new Database(
@@ -44,7 +44,7 @@ public class MySQLRepository extends JavaPlugin {
 							getConfig().getString("db." + l + ".name"), 
 							getConfig().getString("db." + l + ".user"), 
 							getConfig().getString("db." + l + ".password")
-							)
+							), true
 					);
 			Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&7[&aMySQLRepository&7] &aRegistered " + getConfig().getString("db." + l + ".name")));
 		}
@@ -65,15 +65,17 @@ public class MySQLRepository extends JavaPlugin {
 		return databases.get(dbName);
 	}
 	
-	public static void registerGlobalDatabase(Database database) {
+	public static void registerGlobalDatabase(Database database, boolean save) {
 		databases.put(database.getDbName(), database);
-		String dbName = database.getDbName();
-		instance.getConfig().set("db." + dbName + ".name", dbName);
-		instance.getConfig().set("db." + dbName + ".host", database.getHost());
-		instance.getConfig().set("db." + dbName + ".port", database.getPort());
-		instance.getConfig().set("db." + dbName + ".user", database.getUser());
-		instance.getConfig().set("db." + dbName + ".password", database.getPassword());
-		instance.saveConfig();
+		if (save) {
+			String dbName = database.getDbName();
+			instance.getConfig().set("db." + dbName + ".name", dbName);
+			instance.getConfig().set("db." + dbName + ".host", database.getHost());
+			instance.getConfig().set("db." + dbName + ".port", database.getPort());
+			instance.getConfig().set("db." + dbName + ".user", database.getUser());
+			instance.getConfig().set("db." + dbName + ".password", database.getPassword());
+			instance.saveConfig();
+		}
 	
 	}
 	public static Database getMainDatabase() {
