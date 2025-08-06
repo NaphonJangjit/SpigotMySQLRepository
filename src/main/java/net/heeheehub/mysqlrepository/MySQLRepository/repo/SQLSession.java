@@ -15,7 +15,7 @@ public class SQLSession {
     private Map<String, Object> persistenceContext;
     private SQLTransaction tx;
     public SQLSession(Database database) throws SQLException {
-        this.database = database;
+        this.database = new Database(database.getHost(), database.getPort(), database.getDbName(), database.getUser(), database.getPassword());
         this.persistenceContext = new HashMap<>();
         this.tx = new SQLTransaction(database);
     }
@@ -199,6 +199,10 @@ public class SQLSession {
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute get() by UUID", e);
         }
+    }
+    
+    public <T> List<T> getAll(Class<T> clazz){
+    	return executeQuery(clazz, "");
     }
 
     public void delete(String tableName, String idCol, long id) {
@@ -633,5 +637,7 @@ public class SQLSession {
         }
         return id;
     }
+    
+    
 
 }
