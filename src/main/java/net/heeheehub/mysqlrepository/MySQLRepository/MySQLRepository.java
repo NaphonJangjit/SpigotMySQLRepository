@@ -81,5 +81,4 @@ public class MySQLRepository extends JavaPlugin {
 	public static Database getMainDatabase() {
 		return databases.get(mainDb);
 	}
-	
 }
