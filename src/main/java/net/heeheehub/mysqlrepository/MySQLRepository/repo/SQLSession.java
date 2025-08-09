@@ -16,6 +16,7 @@ public class SQLSession {
     private SQLTransaction tx;
     public SQLSession(Database database) throws SQLException {
         this.database = new Database(database.getHost(), database.getPort(), database.getDbName(), database.getUser(), database.getPassword());
+        this.database.connect();
         this.persistenceContext = new HashMap<>();
         this.tx = new SQLTransaction(database);
     }
