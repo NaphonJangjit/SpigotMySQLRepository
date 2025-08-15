@@ -22,13 +22,11 @@ public class SQLSession {
     }
     
     public SQLTransaction beginTransaction() throws SQLException {
-    	persistenceContext.clear();
     	tx.begin();
     	return tx;
     }
     
     public void endTransaction() throws SQLException {
-    	persistenceContext.clear();
     	tx.end();
     }
 
