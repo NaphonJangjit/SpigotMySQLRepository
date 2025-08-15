@@ -1,5 +1,7 @@
 net/heeheehub/mysqlrepository/MySQLRepository/repo/SQLSession.class
 net/heeheehub/mysqlrepository/MySQLRepository/object/MySQLField.class
+net/heeheehub/mysqlrepository/MySQLRepository/object/SQLForeignKey.class
+net/heeheehub/mysqlrepository/MySQLRepository/object/SQLPrimaryKey.class
 net/heeheehub/mysqlrepository/MySQLRepository/repo/SQLTransaction.class
 net/heeheehub/mysqlrepository/MySQLRepository/object/MySQLColumn.class
 net/heeheehub/mysqlrepository/MySQLRepository/MySQLRepository.class

@@ -1,7 +1,9 @@
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/MySQLRepository.java
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/object/MySQLColumn.java
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/object/MySQLField.java
+/home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/object/SQLForeignKey.java
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/object/SQLId.java
+/home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/object/SQLPrimaryKey.java
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/repo/Database.java
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/repo/SQLSession.java
 /home/naphon/eclipse-workspace/MySQLRepository/src/main/java/net/heeheehub/mysqlrepository/MySQLRepository/repo/SQLTransaction.java
