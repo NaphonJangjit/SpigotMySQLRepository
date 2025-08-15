@@ -2,7 +2,9 @@ package net.heeheehub.mysqlrepository.MySQLRepository.repo;
 
 import net.heeheehub.mysqlrepository.MySQLRepository.object.MySQLColumn;
 import net.heeheehub.mysqlrepository.MySQLRepository.object.MySQLField;
+import net.heeheehub.mysqlrepository.MySQLRepository.object.SQLForeignKey;
 import net.heeheehub.mysqlrepository.MySQLRepository.object.SQLId;
+import net.heeheehub.mysqlrepository.MySQLRepository.object.SQLPrimaryKey;
 
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.Field;
@@ -295,7 +297,9 @@ public class SQLSession {
     public void createTable(String tableName, Class<?> clazz) {
         Map<String, Field> colsData = new LinkedHashMap<>();
         Map<String, Boolean> notNullConstraints = new HashMap<>();
-        String primaryKeyColumn = null;
+        String idColumn = null;
+        List<String> primaryKeyColumns = new ArrayList<>();
+        List<String> foreignKeyDefs = new ArrayList<>();
 
         boolean isAutoMapped = isAutoMapped(clazz);
 
@@ -317,8 +321,26 @@ public class SQLSession {
             notNullConstraints.put(columnName, isNotNull);
 
             if (f.isAnnotationPresent(SQLId.class)) {
-                primaryKeyColumn = columnName;
+                if (idColumn != null) {
+                    throw new RuntimeException("Table " + tableName + " can only have one SQLId column!");
+                }
+                idColumn = columnName;
             }
+
+            if (f.isAnnotationPresent(SQLPrimaryKey.class)) {
+                primaryKeyColumns.add(columnName);
+            }
+
+            if (f.isAnnotationPresent(SQLForeignKey.class)) {
+                SQLForeignKey fk = f.getAnnotation(SQLForeignKey.class);
+                String fkDef = String.format("FOREIGN KEY (`%s`) REFERENCES `%s`(`%s`)",
+                        columnName, fk.table(), fk.attribute());
+                foreignKeyDefs.add(fkDef);
+            }
+        }
+
+        if (idColumn == null) {
+            throw new RuntimeException("Table " + tableName + " must have one SQLId column!");
         }
 
         StringBuilder codeBuilder = new StringBuilder("CREATE TABLE IF NOT EXISTS `")
@@ -334,29 +356,34 @@ public class SQLSession {
 
             StringBuilder colDef = new StringBuilder("  `").append(colName).append("` ").append(sqlType);
 
-            if (colName.equals(primaryKeyColumn)) {
-                colDef.append(" PRIMARY KEY AUTO_INCREMENT UNIQUE");
-            }
-
-            if (notNullConstraints.getOrDefault(colName, false) || colName.equals(primaryKeyColumn)) {
+            // Auto-increment and NOT NULL for SQLId
+            if (colName.equals(idColumn)) {
+                colDef.append(" PRIMARY KEY AUTO_INCREMENT UNIQUE NOT NULL");
+            } else if (notNullConstraints.getOrDefault(colName, false) || primaryKeyColumns.contains(colName)) {
                 colDef.append(" NOT NULL");
             }
 
             columnDefs.add(colDef.toString());
         }
 
+        if (!primaryKeyColumns.isEmpty()) {
+            columnDefs.add("PRIMARY KEY (" + String.join(", ", primaryKeyColumns) + ")");
+        }
+
+        columnDefs.addAll(foreignKeyDefs);
+
         codeBuilder.append(String.join(",\n", columnDefs));
         codeBuilder.append("\n);");
 
         String sql = codeBuilder.toString();
-        
+
         try (Connection conn = this.database.newConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
 
     public <T> List<T> executeQuery(Class<T> clazz, String query) {
         List<T> results = new ArrayList<>();
