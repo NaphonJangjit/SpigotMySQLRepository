@@ -22,7 +22,6 @@ import java.util.*;
  *
  * @author Naphon
  * @version 1.0-SNAPSHOT
- * @since 2023-10-27
  */
 public class SQLSession {
 
