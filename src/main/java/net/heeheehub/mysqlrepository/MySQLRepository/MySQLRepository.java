@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import net.heeheehub.mysqlrepository.MySQLRepository.repo.Database;
+import net.heeheehub.mysqlrepository.MySQLRepository.repo.SQLSession;
 import net.md_5.bungee.api.ChatColor;
 
 public class MySQLRepository extends JavaPlugin {

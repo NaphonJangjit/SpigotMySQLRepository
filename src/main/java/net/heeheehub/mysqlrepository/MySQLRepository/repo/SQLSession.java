@@ -11,29 +11,82 @@ import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 
+
+/**
+ * Manages database sessions, transactions, and object persistence.
+ * <p>
+ * This class acts as a central point for interacting with a MySQL database.
+ * It provides methods for persisting, retrieving, updating, and deleting objects
+ * that are mapped to database tables. It also manages database connections and transactions.
+ * </p>
+ *
+ * @author Naphon
+ * @version 1.0-SNAPSHOT
+ * @since 2023-10-27
+ */
 public class SQLSession {
 
     private Database database;
     private Map<String, Object> persistenceContext;
     private SQLTransaction tx;
+    private boolean isClosed;
+    
+    
+    /**
+     * Constructs a new SQLSession with a given database connection.
+     * This constructor establishes a connection to the database and initializes
+     * the persistence context and transaction manager.
+     *
+     * @param database The database object containing connection details.
+     * @throws SQLException if a database access error occurs.
+     */
     public SQLSession(Database database) throws SQLException {
         this.database = new Database(database.getHost(), database.getPort(), database.getDbName(), database.getUser(), database.getPassword());
         this.database.connect();
+        this.isClosed = false;
         this.persistenceContext = new HashMap<>();
         this.tx = new SQLTransaction(database);
     }
     
+    /**
+     * Starts a new database transaction.
+     *
+     * @return The {@link SQLTransaction} object managing the transaction.
+     * @throws SQLException if a database access error occurs.
+     */
     public SQLTransaction beginTransaction() throws SQLException {
     	tx.begin();
     	return tx;
     }
     
+    /**
+     * Ends the current transaction.
+     *
+     * @throws SQLException if a database access error occurs.
+     */
     public void endTransaction() throws SQLException {
     	tx.end();
     }
 
+    
+    /**
+     * Persists a given object to the database.
+     * <p>
+     * If the object has an existing ID and is already in the persistence context,
+     * this method updates its corresponding record in the database.
+     * Otherwise, it inserts a new record.
+     * </p>
+     *
+     * @param object The object to be persisted.
+     * @return The ID of the persisted object.
+     * @throws SQLException               if a database access error occurs.
+     * @throws IllegalClassFormatException if the object's class has multiple ID fields.
+     * @throws IllegalAccessException     if the application cannot access the fields of the object.
+     * @throws IllegalStateException      if the session is closed or there is no active transaction.
+     */
     public Long persists(Object object) throws SQLException, IllegalClassFormatException, IllegalAccessException {
-        if(!tx.isActive()) throw new IllegalStateException("No active transaction");
+        if(isClosed) throw new IllegalStateException("Session is closed.");
+    	if(!tx.isActive()) throw new IllegalStateException("No active transaction");
         Long id = getId(object);
         String key;
         if(id != null) {
@@ -95,7 +148,19 @@ public class SQLSession {
         return id;
     }
 
+    
+    /**
+     * Retrieves an object from the database by its ID.
+     *
+     * @param clazz The class of the object to retrieve.
+     * @param id    The ID of the object.
+     * @param <T>   The type of the object.
+     * @return The retrieved object, or null if not found.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if the class has no {@code @SQLId} field or a database error occurs.
+     */
     public <T> T get(Class<T> clazz, Long id) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         try {
             String tableName = getTableName(clazz);
             String idColumn = null;
@@ -159,7 +224,20 @@ public class SQLSession {
         }
     }
 
+    
+    /**
+     * Retrieves an object from the database by a UUID column.
+     *
+     * @param clazz  The class of the object to retrieve.
+     * @param uuidCol The name of the UUID column.
+     * @param uuid   The UUID value.
+     * @param <T>    The type of the object.
+     * @return The retrieved object, or null if not found.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if a database error occurs.
+     */
     public <T> T get(Class<T> clazz, String uuidCol, UUID uuid) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         try {
             String tableName = getTableName(clazz);
 
@@ -202,11 +280,32 @@ public class SQLSession {
         }
     }
     
+    /**
+     * Retrieves all objects of a given class from the database.
+     *
+     * @param clazz The class of the objects to retrieve.
+     * @param <T>   The type of the objects.
+     * @return A list of all objects of the specified type.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if a database error occurs.
+     */
     public <T> List<T> getAll(Class<T> clazz){
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
     	return executeQuery(clazz, "");
     }
 
+    
+    /**
+     * Deletes a record from a specified table by its ID.
+     *
+     * @param tableName The name of the table.
+     * @param idCol     The name of the ID column.
+     * @param id        The ID of the record to delete.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if a database access error occurs.
+     */
     public void delete(String tableName, String idCol, long id) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         String sql = "DELETE FROM `" + tableName + "` WHERE `" + idCol + "` = ?";
 
         try (PreparedStatement ps = database.getConn().prepareStatement(sql)) {
@@ -217,7 +316,34 @@ public class SQLSession {
         }
     }
 
+    
+    /**
+     * Closes the database connection and the session.
+     */
+    public void close() {
+    	this.database.disconnect();
+    	this.isClosed = true;
+    }
+    
+    /**
+     * Checks if the session is closed.
+     *
+     * @return true if the session is closed, false otherwise.
+     */
+    public boolean isClosed() {
+		return isClosed;
+	}
+    
+    /**
+     * Deletes an object from the database.
+     *
+     * @param o The object to delete.
+     * @throws IllegalStateException if the session is closed or no {@code @SQLId} field is found.
+     * @throws RuntimeException      if a database access error occurs.
+     * @throws IllegalArgumentException if the ID type is unsupported.
+     */
     public void delete(Object o) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         try {
             Class<?> clazz = o.getClass();
             String tableName = getTableName(clazz);
@@ -260,7 +386,20 @@ public class SQLSession {
         }
     }
     
+    /**
+     * Retrieves the ID of a record based on a specific column and value.
+     *
+     * @param clazz  The class of the object.
+     * @param column The name of the column to search by.
+     * @param value  The value to match.
+     * @return The ID of the found record, or -1L if the table does not exist.
+     * @throws IllegalAccessException     if the application cannot access the ID field.
+     * @throws IllegalClassFormatException if the class has multiple ID fields.
+     * @throws SQLException               if a database access error occurs.
+     * @throws IllegalStateException      if the session is closed.
+     */
     public Long getIdBy(Class<?> clazz, String column, Object value) throws IllegalAccessException, IllegalClassFormatException, SQLException {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
     	Long id = null;
     	String tableName = getTableName(clazz);
     	String idCol = getIdColumn(clazz);
@@ -282,8 +421,17 @@ public class SQLSession {
     	return id;
     }
 
-
+    /**
+     * Deletes a record from a specified table by its UUID.
+     *
+     * @param tableName The name of the table.
+     * @param uuidCol   The name of the UUID column.
+     * @param uuid      The UUID value of the record to delete.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if a database access error occurs.
+     */
     public void delete(String tableName, String uuidCol, UUID uuid) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         String sql = "DELETE FROM `" + tableName + "` WHERE `" + uuidCol + "` = ?";
 
         try (PreparedStatement ps = database.getConn().prepareStatement(sql)) {
@@ -294,7 +442,23 @@ public class SQLSession {
         }
     }
 
+    
+    /**
+     * Creates a new table in the database based on a class definition.
+     * <p>
+     * This method inspects the annotations on the class fields to determine
+     * column names, types, and constraints (e.g., primary keys, foreign keys, not null).
+     * It will create the table only if it does not already exist.
+     * </p>
+     *
+     * @param tableName The name of the table to create.
+     * @param clazz     The class representing the table structure.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if the class has no {@code @MySQLField} or {@code @SQLId} annotation,
+     * or if the class has multiple {@code @SQLId} columns.
+     */
     public void createTable(String tableName, Class<?> clazz) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         Map<String, Field> colsData = new LinkedHashMap<>();
         Map<String, Boolean> notNullConstraints = new HashMap<>();
         String idColumn = null;
@@ -384,8 +548,22 @@ public class SQLSession {
         }
     }
 
-
+    /**
+     * Executes a custom SQL query and maps the results to a list of objects.
+     * <p>
+     * The query should be a valid SQL WHERE or ORDER BY clause.
+     * For example: "WHERE status = 'active' ORDER BY created_at DESC"
+     * </p>
+     *
+     * @param clazz The class to which the query results will be mapped.
+     * @param query The SQL query fragment (e.g., WHERE clause).
+     * @param <T>   The type of the objects in the result list.
+     * @return A list of objects from the query results.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if a database access error or mapping error occurs.
+     */
     public <T> List<T> executeQuery(Class<T> clazz, String query) {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         List<T> results = new ArrayList<>();
 
 
@@ -425,8 +603,17 @@ public class SQLSession {
         return results;
     }
 
+    
+    /**
+     * Executes a native SQL query and returns the results as a list of object arrays.
+     *
+     * @param query The native SQL query to execute.
+     * @return A list of object arrays, where each array represents a row from the result set.
+     * @throws IllegalStateException if the session is closed.
+     * @throws RuntimeException      if a database access error occurs.
+     */
     public List<Object[]> executeNativeQuery(String query) {
-
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         List<Object[]> results = new ArrayList<>();
 
         try (PreparedStatement ps = database.newConnection().prepareStatement(query);
@@ -488,8 +675,20 @@ public class SQLSession {
         }
         return id;
     }
-
+    /**
+     * Updates an existing object in the database.
+     * <p>
+     * The object must have a valid ID. Only the fields marked for mapping will be updated.
+     * </p>
+     *
+     * @param o The object to update.
+     * @throws SQLException               if a database access error occurs.
+     * @throws IllegalClassFormatException if the class has multiple ID fields.
+     * @throws IllegalAccessException     if the application cannot access the fields.
+     * @throws IllegalStateException      if the session is closed.
+     */
     public void update(Object o) throws SQLException, IllegalClassFormatException, IllegalAccessException {
+    	if(isClosed) throw new IllegalStateException("Session is closed.");
         String tableName = getTableName(o);
         Map<String, Field> params = getColumnData(o, false);
         String idCol = getIdColumn(o);
