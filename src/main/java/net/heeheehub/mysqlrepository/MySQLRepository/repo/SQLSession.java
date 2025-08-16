@@ -356,9 +356,9 @@ public class SQLSession {
 
             StringBuilder colDef = new StringBuilder("  `").append(colName).append("` ").append(sqlType);
 
-            // Auto-increment and NOT NULL for SQLId
             if (colName.equals(idColumn)) {
-                colDef.append(" PRIMARY KEY AUTO_INCREMENT UNIQUE NOT NULL");
+                colDef.append(" AUTO_INCREMENT UNIQUE NOT NULL");
+                primaryKeyColumns.add(idColumn);
             } else if (notNullConstraints.getOrDefault(colName, false) || primaryKeyColumns.contains(colName)) {
                 colDef.append(" NOT NULL");
             }
